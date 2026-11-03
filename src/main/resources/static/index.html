@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <title>FleetTrack - Canlı GPS İzləmə</title>
+    <!-- SockJS və STOMP kitabxanaları -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; background-color: #f4f7f6; }
+        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 650px; margin: auto; }
+        h2 { color: #333; margin-top: 0; }
+        .status { padding: 10px; border-radius: 5px; font-weight: bold; margin-bottom: 20px; display: inline-block; }
+        .disconnected { background: #ffebee; color: #c62828; }
+        .connected { background: #e8f5e9; color: #2e7d32; }
+        .btn { padding: 10px 18px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn-primary { background: #1976d2; color: white; margin-right: 10px; }
+        .btn-success { background: #388e3c; color: white; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .log-box { background: #263238; color: #eceff1; padding: 15px; border-radius: 5px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 13px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🚗 FleetTrack Canlı GPS İzləmə Testi</h2>
+    <div id="status" class="status disconnected">Bağlantı: Qoşulmayıb ❌</div>
+
+    <div>
+        <button id="connectBtn" class="btn btn-primary" onclick="connect()">Qoşul (Connect)</button>
+        <button id="disconnectBtn" class="btn btn-primary" onclick="disconnect()" disabled>Bağlantını Kəs</button>
+    </div>
+
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+    <div class="input-group">
+        <label>Maşın ID (Vehicle ID):</label>
+        <input type="number" id="vehicleId" value="1">
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <div class="input-group" style="flex: 1;">
+            <label>Enlik (Latitude):</label>
+            <input type="text" id="latitude" value="40.4093">
+        </div>
+        <div class="input-group" style="flex: 1;">
+            <label>Uzunluq (Longitude):</label>
+            <input type="text" id="longitude" value="49.8671">
+        </div>
+    </div>
+
+    <button id="sendBtn" class="btn btn-success" onclick="sendLocation()" disabled>📍 Canlı Koordinat Göndər</button>
+
+    <h3>Gələn Canlı Bildirişlər (/topic/locations):</h3>
+    <div id="logs" class="log-box">Hələ heç bir məlumat gəlməyib...</div>
+</div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            document.getElementById('status').className = 'status connected';
+            document.getElementById('status').innerText = 'Bağlantı: Uğurla Qoşuldu! ✅';
+            document.getElementById('connectBtn').disabled = true;
+            document.getElementById('disconnectBtn').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            log('WebSocket ilə uğurla əlaqə quruldu.');
+
+            // Kanala abunə oluruq
+            stompClient.subscribe('/topic/locations', function (message) {
+                log('CANLI KOORDİNAT GƏLDİ: ' + message.body);
+            });
+            log('/topic/locations kanalına abunə olundu.');
+        }, function (error) {
+            log('Xəta baş verdi: ' + error);
+        });
+    }
+
+    function disconnect() {
+        if (stompClient !== null) {
+            stompClient.disconnect();
+        }
+        document.getElementById('status').className = 'status disconnected';
+        document.getElementById('status').innerText = 'Bağlantı: Qoşulmayıb ❌';
+        document.getElementById('connectBtn').disabled = false;
+        document.getElementById('disconnectBtn').disabled = true;
+        document.getElementById('sendBtn').disabled = true;
+        log('Bağlantı kəsildi.');
+    }
+
+    function sendLocation() {
+        const locationData = {
+            vehicleId: parseInt(document.getElementById('vehicleId').value),
+            latitude: parseFloat(document.getElementById('latitude').value),
+            longitude: parseFloat(document.getElementById('longitude').value)
+        };
+
+        stompClient.send("/app/location", {}, JSON.stringify(locationData));
+        log('Göndərildi: ' + JSON.stringify(locationData));
+    }
+
+    function log(message) {
+        const logsDiv = document.getElementById('logs');
+        const time = new Date().toLocaleTimeString();
+        logsDiv.innerHTML += `<div>[${time}] ${message}</div>`;
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+    }
+</script>
+
+</body>
+</html>

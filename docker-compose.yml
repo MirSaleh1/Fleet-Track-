@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:latest
+    container_name: fleettrack
+    environment:
+      POSTGRES_USER: mirsaleh
+      POSTGRES_PASSWORD: mirsaleh
+      POSTGRES_DB: fleettrack_db
+    ports:
+      - "3241:5432"
+
+
+  redis:
+    image: redis:alpine
+    container_name: fleettrack-redis
+    ports:
+      - "6379:6379"

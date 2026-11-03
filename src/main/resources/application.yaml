@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: FleetTrack
+  datasource:
+    url: jdbc:postgresql://localhost:3241/fleettrack_db
+    username: mirsaleh
+    password: mirsaleh
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret-key-path: classpath:keys/jwt-secret.key
+  expiration-time: 3600000
+  refresh-expiration-time: 604800000
+
+server:
+  port: 8080
