@@ -1,8 +1,6 @@
 package com.example.fleettrack.mapper;
 
-import com.example.fleettrack.entity.Driver;
 import com.example.fleettrack.entity.Vehicle;
-import com.example.fleettrack.model.request.DriverRequest;
 import com.example.fleettrack.model.request.VehicleRequest;
 import com.example.fleettrack.model.response.VehicleResponse;
 import org.mapstruct.BeanMapping;
@@ -16,5 +14,5 @@ public interface VehicleResponseMapper {
     VehicleResponse maptoVehicleResponse(Vehicle vehicle);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void uptadeVehicle(VehicleRequest VehicleRequest, @MappingTarget Vehicle vehicle);
+    void updateVehicle(VehicleRequest VehicleRequest, @MappingTarget Vehicle vehicle);
 }

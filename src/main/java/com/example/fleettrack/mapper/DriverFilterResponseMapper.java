@@ -1,9 +1,7 @@
 package com.example.fleettrack.mapper;
 
 import com.example.fleettrack.entity.Driver;
-import com.example.fleettrack.entity.Vehicle;
 import com.example.fleettrack.model.response.DriverFilterResponse;
-import com.example.fleettrack.model.response.VehicleFilterResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.data.domain.Page;
@@ -16,5 +14,5 @@ public interface DriverFilterResponseMapper {
     @Mapping(target = "currentPage", source = "number")
     @Mapping(target = "pageSize", source = "size")
     @Mapping(target = "hasNext", expression = "java(page.hasNext())")
-    DriverFilterResponse maptoVehicleFilterResponse(Page<Driver> page);
+    DriverFilterResponse maptoDriverFilterResponse(Page<Driver> page);
 }

@@ -11,5 +11,5 @@ public interface DriverResponseMapper {
     DriverResponse maptoDriverResponse(Driver driver);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void uptadeDriver(DriverRequest driverRequest, @MappingTarget Driver driver);
+    void updateDriver(DriverRequest driverRequest, @MappingTarget Driver driver);
 }

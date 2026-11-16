@@ -54,6 +54,6 @@ public class DriverController {
     @PreAuthorize("hasAnyRole('ADMIN', 'FLEET_MANAGER')")
     public ResponseEntity<DriverFilterResponse> getAllDrivers(@ModelAttribute DriverRequest filterRequest,
                                                               @Valid @ModelAttribute PagesRequest pagesRequest) {
-        return ResponseEntity.ok(driverService.getAllVehicles(filterRequest, pagesRequest));
+        return ResponseEntity.ok(driverService.getAllDrivers(filterRequest, pagesRequest));
     }
 }

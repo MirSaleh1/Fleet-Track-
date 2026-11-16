@@ -15,9 +15,12 @@ import com.example.fleettrack.model.response.DriverResponse;
 import com.example.fleettrack.repository.DriverRepository;
 import com.example.fleettrack.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,7 @@ public class DriverService {
     private final DriverResponseMapper driverResponseMapper;
     private final VehicleRepository vehicleRepository;
     private final DriverFilterResponseMapper driverFilterResponseMapper;
+    private final CacheManager cacheManager;
 
     @CachePut(value = "drivers", key = "#driverRequest.licenseNumber()")
     public DriverResponse createDriver(DriverRequest driverRequest) {
@@ -50,7 +54,8 @@ public class DriverService {
     public DriverResponse updateDriver(DriverRequest driverRequest) {
         Driver driver = driverRepository.findByLicenseNumber(driverRequest.licenseNumber())
                 .orElseThrow(() -> new BusinessException(ExceptionConstants.DRIVER_NOT_FOUND));
-        driverResponseMapper.uptadeDriver(driverRequest, driver);
+        evictAssignedVehiclesCache(driver);
+        driverResponseMapper.updateDriver(driverRequest, driver);
         return driverResponseMapper.maptoDriverResponse(driverRepository.save(driver));
     }
 
@@ -58,13 +63,23 @@ public class DriverService {
     public DriverResponse deleteDriver(DriverRequest driverRequest) {
         Driver driver = driverRepository.findByLicenseNumber(driverRequest.licenseNumber())
                 .orElseThrow(() -> new BusinessException(ExceptionConstants.DRIVER_NOT_FOUND));
+        evictAssignedVehiclesCache(driver);
+        if (driver.getAssignedVehicles() != null) {
+            for (Vehicle vehicle : driver.getAssignedVehicles()) {
+                vehicle.setDriver(null);
+                vehicle.setCarStatus(CarStatus.AVAILABLE);
+                vehicleRepository.save(vehicle);
+            }
+        }
         driverRepository.delete(driver);
         return driverResponseMapper.maptoDriverResponse(driver);
     }
 
     @Transactional
-    @CachePut(value = "drivers", key = "#result.licenseNumber()")
-    @CacheEvict(value = "vehicle", key = "#licensePlate")
+    @Caching(
+            put = { @CachePut(value = "drivers", key = "#result.licenseNumber()") },
+            evict = { @CacheEvict(value = "vehicles", key = "#licensePlate") }
+    )
     public DriverResponse assignVehicleToDriver(Long driverId, String licensePlate) {
         Driver driver = driverRepository.findById(driverId)
                 .orElseThrow(() -> new BusinessException(ExceptionConstants.DRIVER_NOT_FOUND));
@@ -86,9 +101,17 @@ public class DriverService {
         return driverResponseMapper.maptoDriverResponse(driver);
     }
 
-    public DriverFilterResponse getAllVehicles(DriverRequest driverRequest, PagesRequest pagesRequest) {
+    public DriverFilterResponse getAllDrivers (DriverRequest driverRequest, PagesRequest pagesRequest) {
         Specification<Driver> driverSpecification = DriverSpecification.toSpecification(driverRequest);
         Page<Driver> driverPages = driverRepository.findAll(driverSpecification, pagesRequest.toPageable());
-        return driverFilterResponseMapper.maptoVehicleFilterResponse(driverPages);
+        return driverFilterResponseMapper.maptoDriverFilterResponse(driverPages);
+    }
+    private void evictAssignedVehiclesCache(Driver driver) {
+        Cache cache = cacheManager.getCache("vehicles");
+        if (cache != null && driver.getAssignedVehicles() != null) {
+            for (Vehicle vehicle : driver.getAssignedVehicles()) {
+                cache.evict(vehicle.getLicensePlate());
+            }
+        }
     }
 }
